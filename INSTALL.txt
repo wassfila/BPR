@@ -1,0 +1,14 @@
+===============================================================================
+                         Body Posture Recognition
+                          (c) LAAS/Robotic/RAP 2009-2010 LAAS 2011-2012
+===============================================================================
+
+The following dependencies are beeing used :
+
+ * OpenCV
+ * EIGEN
+ * YAML-CPP
+
+The BPR Library isn't packaged yet, use source files.
+
+The BPR project has been tested on Windows Visual Studio 10 x64.
