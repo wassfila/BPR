@@ -1,6 +1,6 @@
 ===============================================================================
                              Body Posture Recognition
-                        (c) LAAS-CNRS/RIA/RAP 2011-2012
+                        (c) LAAS-CNRS/Robotique/RAP 2011-2012
 ===============================================================================
 BPR (Body Posture Recognition) is a BSD-licensed project (cf LICENSE.txt).
 
