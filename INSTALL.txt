@@ -5,10 +5,56 @@
 
 The following dependencies are beeing used :
 
- * OpenCV
- * EIGEN
- * YAML-CPP
+ * OpenCV 2.3
+ * EIGEN 3.0
+ * YAML-CPP 0.3
 
-The BPR Library isn't packaged yet, use source files.
+The BPR Library isn't packaged yet, compile from source.
 
 The BPR project has been tested on Windows Visual Studio 10 x64.
+
+
+===============================================================================
+				Setting up a new project on Visual Studio
+===============================================================================
+
+(*)System Variables e.g.
+HPR_INC_PATH		G:\Projects\hpr
+YAML_LIB_PATH		C:\Program Files\yaml-cpp\lib
+YAML_INC_PATH		C:\Program Files\yaml-cpp\include
+EIGEN_INC_PATH		C:\Program Files\eigen-eigen-65ee2328342f
+OPENCVx64_INC_PATH	C:\Program Files\OpenCV2.2\include\opencv;C:\Program Files (x86)\OpenCV2.2\include
+OPENCVx64_LIB_PATH	C:\Program Files\OpenCV2.2\lib
+
+
+(*)Create New Project
+ Add Existing Item...
+  Add all BPR Project sources
+
+(*)Project Properties
+ Configuration Properties
+  C/C++
+   General
+    Additional Include Directories
+$(HPR_INC_PATH);$(YAML_INC_PATH);$(EIGEN_INC_PATH);$(OPENCVx64_INC_PATH);
+
+(*)Project Properties
+ Configuration Properties
+  Linker
+   General
+    Additional Library Directories
+$(YAML_LIB_PATH);$(OPENCVx64_LIB_PATH);
+
+(*)Configuration(Release) Platform(x64)
+Project Properties
+ Configuration Properties
+  Linker
+   Input
+libyaml-cppmd.lib;opencv_core231.lib;opencv_highgui231.lib;opencv_calib3d231.lib;opencv_imgproc231.lib;opencv_video231.lib;opencv_legacy231.lib;opencv_flann231.lib;opencv_ml231.lib;winmm.lib;comctl32.lib;dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)
+
+(*)Configuration(Debug) Platform(x64)
+Project Properties
+ Configuration Properties
+  Linker
+   Input
+libyaml-cppmdd.lib;opencv_core231d.lib;opencv_highgui231d.lib;opencv_calib3d231d.lib;opencv_imgproc231d.lib;opencv_video231d.lib;opencv_legacy231d.lib;opencv_flann231d.lib;opencv_ml231d.lib;winmm.lib;comctl32.lib;dxgi.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)
