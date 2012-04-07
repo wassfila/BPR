@@ -13,8 +13,12 @@
 
 */
 
+#pragma once
 #ifndef __DETECTORBPR__
 #define __DETECTORBPR__
+//#pragma message("------------------------------------DetectorBPR.h------------------------------------")
+
+#include "S3DEnv.h"
 
 #include "cv.h"
 #include "highgui.h"
@@ -25,8 +29,12 @@
 
 #include "S3DGeom.h"
 #include "S3DVox.h"
-#include "S3DEnv.h"
 #include "S3DModel.h"
+
+
+#include "mcvGeneral.h"
+#include "MultiCamStream.h"
+
 
 #define PART_HEAD		0
 #define PART_BODY		1

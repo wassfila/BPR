@@ -7,21 +7,24 @@
 	
 */
 
+#pragma once
 #ifndef __S3DVox__
 #define __S3DVox__
+//#pragma message("------------------------------------S3DVox.h------------------------------------")
+
+#include "S3DEnv.h"
 
 #include "cv.h"
 #include "highgui.h"
 
+#include "mcvGeneral.h"
+#include "MultiCamStream.h"
+#include "mrgRegression.h"
 #include "S3DGeom.h"
 #include "S3DCamera.h"
-#include "MultiCamStream.h"
-#include "S3DEnv.h"
 
-// Just for the Vector's Table, wait till it gets independent and remore Regression dependeny
-//The Vector's Table Comparison and statistic display is specific to ML so inherit an MLVectorsTable for that
-#include "mrgRegression.h"
-
+#include <iostream>
+#include <fstream>
 
 namespace g3d
 {
@@ -101,6 +104,8 @@ public:
 	int MedianFilter(int MaxClasses);
 	void ToVectTab(mrg::VectorsTable_c &VectTab);
 	void FromVectTab(mrg::VectorsTable_c &VectTab);
+public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 //-------------------------------------------------------------------------------------------------

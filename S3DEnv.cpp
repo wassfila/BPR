@@ -1,11 +1,6 @@
 
 #include "S3DEnv.h"
 
-#include <iostream>
-#include <fstream>
-#include "mcvGeneral.h"
-
-#include "S3DGeom.h"
 
 //--------------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------
@@ -108,10 +103,6 @@ void S3DEnv_c::save(const std::string &vCfgFileName,bool isSaveModel)//sample sa
 
 	//------------------------------------------------------Now Save The dependant Files
 	std::string CfgMainPath = mcv::GetMainPath(vCfgFileName);
-	std::string ModelFileName = CfgMainPath;
-	ModelFileName += "Model1.skel";
-	//sprintf(ModelFileName,"%sModel1.skel",MainPath);
-	WModel.save(ModelFileName.c_str());
 	//---------------------------------------------------------------------save the cameras
 	for(int i=0;i<NbCams;i++)
 	{
@@ -173,21 +164,6 @@ void S3DEnv_c::load(const std::string &vCfgFileName)
 			CamFileName += (std::string)FNode[i]["Calib"];
 			Cams[i].Load(CamFileName.c_str(),true,true);
 			Cams[i].Id = i;
-		}
-
-		if(!Fs["ModelFileName"].empty())
-		{
-			std::string ModelFileName = (std::string)Fs["ModelFileName"];
-			ModelFileName = SMainPath + ModelFileName;
-			WModel.load(ModelFileName.c_str());
-			//-----------------------------------------------------------------load Motion if Available
-			if(!Fs["MotionFileName"].empty())
-			{
-				std::string MotionFileName = (std::string)Fs["MotionFileName"];
-				WModel.Motion.MotionName = MotionFileName;
-				MotionFileName = SMainPath + MotionFileName;
-				WModel.Motion.load(MotionFileName.c_str());
-			}
 		}
 
 		if(!Fs["LastStreamsIndex"].empty())
@@ -282,43 +258,11 @@ void S3DEnv_c::GetBuffers(std::vector<cv::Mat>&Imgs)
 	}
 }
 //--------------------------------------------------------------------------------------------------------------
-void S3DEnv_c::Render(bool IsClearBuffers)
-{
-	for(int i=0;i<(int)Cams.size();i++)
-	{
-		if(IsClearBuffers)Cams[i].ClearBuffers();
-		WModel.Draw(Cams[i]);
-	}
-}
-//--------------------------------------------------------------------------------------------------------------
-void S3DEnv_c::Render(const char*WinName, bool IsClearBuffers)
-{
-	Render(IsClearBuffers);
-	if(WinName)
-	{
-		Display(WinName);
-	}
-}
-//--------------------------------------------------------------------------------------------------------------
 void S3DEnv_c::SaveRendered(const char*FileName)
 {
 	cv::imwrite(FileName,
 		mcv::im3Show(NULL,Cams[0].ImgRender,Cams[1].ImgRender,Cams[2].ImgRender)
 		);
-}
-//--------------------------------------------------------------------------------------------------------------
-void S3DEnv_c::Draw(std::vector<cv::Mat> &ImgsDrawOn,const char*WinName,float Light)
-{
-	for(int i=0;i<3;i++)WModel.Draw(ImgsDrawOn[i],Cams[i],Light);
-	if(WinName)mcv::im3Show(WinName,ImgsDrawOn[0],ImgsDrawOn[1],ImgsDrawOn[2]);
-}
-//--------------------------------------------------------------------------------------------------------------
-int S3DEnv_c::EvalFilt(std::vector<cv::Mat> &ImgsBkg)//Bad, to rework !!! no support for variable Nb Cams
-{
-	int Val = 0;
-	for(int i=0;i<3;i++)
-		Val += WModel.EvalFit(ImgsBkg[i],Cams[i]);
-	return Val;
 }
 //--------------------------------------------------------------------------------------------------------------
 Eigen::Vector3f S3DEnv_c::PointsToRaysIntersection(cv::Point P1,cv::Point P2,cv::Point P3)
@@ -434,14 +378,6 @@ void S3DEnv_c::DrawBox(const EigenBox3D &Box)
 	}
 }
 //--------------------------------------------------------------------------------------------------------------
-void S3DEnv_c::DrawModel(const char*WinName,float Light)
-{
-	for(int i=0;i<Cams.size();i++)
-	{
-		WModel.Draw(Cams[i]);
-	}
-}
-//--------------------------------------------------------------------------------------------------------------
 void S3DEnv_c::DrawMoCapPos(int FrameIndex,cv::Scalar Color)
 {
 	if(MoCap.BodyParts.size()>0)
@@ -468,92 +404,6 @@ void S3DEnv_c::DrawJointsPos(BodyJointsPose_c Pose,cv::Scalar Color)
 	{
 		DrawPoint3D(V3To4(Pose.BodyParts[i]),Color);
 	}
-}
-//--------------------------------------------------------------------------------------------
-void S3DEnv_c::Cvt_MoCap2SkelDim(int iFrame)
-{
-	int MId = 0;
-	WModel.hBody = MoCap.GetLength(MC_Pelvis,MC_Thorax,iFrame);
-	WModel.wShoulders = MoCap.GetLength(MC_LeftShoulder,MC_RightShoulder,iFrame);
-	WModel.wWaist = MoCap.GetLength(MC_LeftHip,MC_RightHip,iFrame);
-	WModel.Arm = MoCap.GetLength(MC_RightShoulder,MC_RightElbow,iFrame);
-	WModel.Forearm = MoCap.GetLength(MC_RightElbow,MC_RightWrist,iFrame);
-	WModel.Leg = MoCap.GetLength(MC_RightHip,MC_RightKnee,iFrame);
-	WModel.Calf = MoCap.GetLength(MC_RightKnee,MC_FootRight,iFrame);
-	WModel.Neck = MoCap.GetLength(MC_Thorax,MC_Head,iFrame);//We got an issue on the head's pos ??? Do we ?
-
-	WModel.UpdateDefault();//Sets The Default positions using the Body Length Params, hBody...
-	//MySoft3D.WModel.FillNodesCacheTables();//useless doesn't work
-	printf("hBody: %1.2f\n",WModel.hBody);
-	printf("wShoulders: %1.2f\n",WModel.wShoulders);
-	printf("wWaist: %1.2f\n",WModel.wWaist);
-	printf("Arm: %1.2f\n",WModel.Arm);
-	printf("Forearm: %1.2f\n",WModel.Forearm);
-	printf("Leg: %1.2f\n",WModel.Leg);
-	printf("Calf: %1.2f\n",WModel.Calf);
-	printf("Neck: %1.2f\n",WModel.Neck);
-}
-//--------------------------------------------------------------------------------------------
-void S3DEnv_c::Cvt_MoCap2Posture(int iFrame)
-{
-	Matrix4f S3DMatrix;
-	Vector3f S3DVect,VectAL,VectAR,VectTL,VectTR,VPelvis;
-	//Pelvis----------------------------------------------------------------------------------
-	VPelvis = MoCap.BodyParts[MC_Pelvis].PartAnim[iFrame];
-	VectAL = MoCap.BodyParts[MC_LeftShoulder].PartAnim[iFrame];
-	VectAR = MoCap.BodyParts[MC_RightShoulder].PartAnim[iFrame];
-	VectTL = MoCap.BodyParts[MC_LeftHip].PartAnim[iFrame];
-	VectTR = MoCap.BodyParts[MC_RightHip].PartAnim[iFrame];
-
-	WModel.MoveTo(VPelvis,VectAL,VectAR,VectTL,VectTR);// Pelvis->mLocal -> Must MoveTo as Pos to Adjust are Global
-	S3DMatrix = WModel.pPelvis->mLocal;
-
-	bool isDrawRef = false;
-	if(isDrawRef)
-	{
-		g3d::printfMatrix4f(S3DMatrix);
-		DrawReference(S3DMatrix,40);
-	}
-
-	float p1 = 0.04f;
-	float p2 = 0.0016f;
-	/*
-	float precision = 0.1;
-	Vector4f AbsolutePos = V3To4(MoCap.BodyParts[MC_FootLeft].PartAnim[iFrame]);
-	float minLength = FLT_MAX;
-	float minFx,minFy;
-	float StartLimit = 0.0f;
-	float StopLimit = 1.05f;
-	for(float vfy=StartLimit;vfy<StopLimit;vfy+=precision)
-	for(float vfx=StartLimit;vfx<StopLimit;vfx+=precision)
-	{
-		Vector4f CPos = WModel.pLKnee->GetChildPosFromParams(vfx,vfy);
-		Vector3f VectLength = V4To3(AbsolutePos - CPos);
-		float VLength = VectLength.norm();
-		cv::Scalar Color = cv::Scalar(0,70-VLength*5,VLength*5);
-		DrawPoint3D(CPos,Color);
-		if (VLength < minLength) 
-		{
-			minLength = VLength;
-			minFx = vfx;
-			minFy = vfy;
-		}
-	}
-	WModel.pLKnee->MoveTo(minFx,minFy);
-	Vector4f CPos = WModel.pLKnee->GetChildPosFromParams(minFx,minFy);
-	DrawReference(g3d::MatrixTranslation(CPos),20);
-	DrawReference(g3d::MatrixTranslation(AbsolutePos),20);
-	*/
-	
-	WModel.pRShoulder->MoveToAbsoluteCheckAllDouble(V3To4(MoCap.BodyParts[MC_RightElbow].PartAnim[iFrame]),p1,p2);
-	WModel.pLShoulder->MoveToAbsoluteCheckAllDouble(V3To4(MoCap.BodyParts[MC_LeftElbow].PartAnim[iFrame]),p1,p2);
-	WModel.pRElbow->MoveToAbsoluteCheckAllDouble(V3To4(MoCap.BodyParts[MC_RightWrist].PartAnim[iFrame]),p1,p2);
-	WModel.pLElbow->MoveToAbsoluteCheckAllDouble(V3To4(MoCap.BodyParts[MC_LeftWrist].PartAnim[iFrame]),p1,p2);
-	WModel.pRThigh->MoveToAbsoluteCheckAllDouble(V3To4(MoCap.BodyParts[MC_RightKnee].PartAnim[iFrame]),p1,p2);
-	WModel.pLThigh->MoveToAbsoluteCheckAllDouble(V3To4(MoCap.BodyParts[MC_LeftKnee].PartAnim[iFrame]),p1,p2);
-	WModel.pRKnee->MoveToAbsoluteCheckAllDouble(V3To4(MoCap.BodyParts[MC_RightAnkle].PartAnim[iFrame]),p1,p2);
-	WModel.pLKnee->MoveToAbsoluteCheckAllDouble(V3To4(MoCap.BodyParts[MC_LeftAnkle].PartAnim[iFrame]),p1,p2);
-	
 }
 //--------------------------------------------------------------------------------------------------------------
 BodyJointsPose_c S3DEnv_c::Cvt_MoCap2JointsPos(int iFrame)
@@ -760,11 +610,84 @@ void S3DEnv_c::Undistort(const std::vector<cv::Mat> &Imgs,std::vector<cv::Mat> &
 
 //--------------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------
+//											cv::Mat SerDes
+//--------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------
+cv::Mat StringToMat(std::string &Str)
+{
+	//int HeaderSizeBytes = 6 * 4;
+	int DataType,depth,eSize,mType,cols,rows;
+
+	char *pData = &Str[0];
+	memcpy(&DataType	,pData,4);	pData+=4;//1 - cv::Mat,...
+	memcpy(&mType		,pData,4);	pData+=4;//2 - CV_8UC3,...
+	memcpy(&cols		,pData,4);	pData+=4;//3 - 640,
+	memcpy(&rows		,pData,4);	pData+=4;//4 - 480,
+	memcpy(&depth		,pData,4);	pData+=4;//5 - 1,
+	memcpy(&eSize		,pData,4);	pData+=4;//6 - 3
+
+	cv::Mat Img(rows,cols,mType);
+	Img.setTo(cv::Scalar(255,20,30));
+	//cv::Mat Img(rows,cols,CV_8UC4);
+
+	int DataSizeBytes = cols * rows * eSize;
+	memcpy(Img.datastart,pData,DataSizeBytes);				 //Mat.data
+	return Img;
+}
+//--------------------------------------------------------------------------------------------------------------
+void MatToString(cv::Mat Img,std::string &Str)
+{
+	Str.clear();
+	int DataSizeBytes = (int)(Img.dataend - Img.datastart);
+	int HeaderSizeBytes = 6 * 4;
+	Str.resize(DataSizeBytes + HeaderSizeBytes);
+	int DataType = 1;//cv::Mat
+	int depth = 1;//cv::Mat is Flat
+	int eSize = Img.elemSize();
+	int mType = Img.type();
+	char *pData = &Str[0];
+	memcpy(pData,&DataType,4);	pData+=4;//1 - cv::Mat,...
+	memcpy(pData,&mType,4);		pData+=4;//2 - CV_8UC3,...
+	memcpy(pData,&Img.cols,4);	pData+=4;//3 - 640,
+	memcpy(pData,&Img.rows,4);	pData+=4;//4 - 480,
+	memcpy(pData,&depth,4);		pData+=4;//5 - 1,
+	memcpy(pData,&eSize,4);		pData+=4;//6 - 3
+
+	memcpy(pData,Img.datastart,DataSizeBytes);				 //Mat.data
+}
+//--------------------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------------------
 //											View_c
 //--------------------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------------------
+bool View_c::Grab()
+{
+	if(Source.compare(0,3,"net") == 0)//"net","rosnet"
+	{
+		std::string DataBlob;
+		NetStream.Poll(DataBlob);
+		if(!DataBlob.empty())//Channel might be empty, slow down polling
+		{
+			Buffer = StringToMat(DataBlob);
+			if(ChanType.compare(0,5,"Depth") == 0 )
+			{
+				cv::cvtColor(Buffer,Buffer,cv::COLOR_BGRA2BGR);
+				mcv::CvtDepthmm2DepthDisplay(Buffer,Buffer);
+			}
+		}
+	}
+	return true;
+}
+//--------------------------------------------------------------------------------------------------------------
+cv::Mat View_c::GetFrame()
+{
+	Grab();//updates Buffer
+	return Buffer;
+}
+//--------------------------------------------------------------------------------------------------------------
 bool View_c::Grab(int Index)
 {
+	//The Source is assumed to be "FileStream"
 	Buffer = Stream.GetFrameByIndex(Index);
 	return true;
 }
@@ -789,9 +712,26 @@ void S3DGrabber_c::SetupGrabber(stringmap &Config)//Parses "CfgFile" and Adds "C
 		//--------------------------------------------------------------------------------------"Channels" : "BKG"
 		for(size_t i=0;i<Fs["Views"].size();i++)
 		{
-			Views[i].ChanType = Config["Channels"];
-			Views[i].Source = "IMGFileStream";
-			Views[i].Stream.Init(Config["CfgFile"],"Views",Views[i].ChanType,i);//use of SeqIndex
+			std::string ChanType = Config["Channels"];//e.g. "Depth"
+			Views[i].ChanType = ChanType;
+			//-------------------------------------------------Here we define if the source is Net or File
+			std::string ChanSource = (std::string)Fs["Views"][i][ChanType];
+			//ChanSource = SourceType:IP:Port:ChannelId
+			if(ChanSource.compare(0,4,"net:")==0)//The Source Type is "net"
+			{
+				Views[i].Source				= mcv::TakeParseTo(ChanSource,':');//"net"
+				stringmap NetConfig;
+				NetConfig["IPADD"]			= mcv::TakeParseTo(ChanSource,':');
+				NetConfig["PORT"]			= mcv::TakeParseTo(ChanSource,':');
+				NetConfig["ChannelId"]		= mcv::TakeParseTo(ChanSource,':');
+				Views[i].NetStream.Init(NetConfig);
+			}
+			//else test all known sources "Firewire", "RosNet"
+			else
+			{
+				Views[i].Source = "IMGFileStream";
+				Views[i].Stream.Init(Config["CfgFile"],"Views",ChanType,i);//use of SeqIndex
+			}
 			std::string CamCaliFileName = (std::string)Fs["Views"][i]["Calib"];
 			CamCaliFileName = mcv::GetMainPath(Config["CfgFile"]) + CamCaliFileName;
 			Views[i].Cam.Load(CamCaliFileName.c_str());//So that we have the width and height
@@ -832,6 +772,18 @@ void S3DGrabber_c::SetupGrabber(stringmap &Config)//Parses "CfgFile" and Adds "C
 }
 //--------------------------------------------------------------------------------------------------------------
 //void S3DGrabber_c::SetChannels(std::string &ChannelTag)//"Any" will take the First of every channels list
+//--------------------------------------------------------------------------------------------------------------
+void S3DGrabber_c::GrabFrame()
+{
+	if(Buffers.size() != Views.size())
+	{
+		Buffers.resize(Views.size());
+	}
+	for(size_t i=0;i<Views.size();i++)
+	{
+		Buffers[i] = Views[i].GetFrame();
+	}
+}
 //--------------------------------------------------------------------------------------------------------------
 void S3DGrabber_c::GrabFrameIndex(int Index)
 {
@@ -881,6 +833,14 @@ void S3DBaseViewer_c::AddToRender(Renderable_c* pToRender)
 void S3DBaseViewer_c::AddToGrab(mcv::Grabbable_c* pToGrab)
 {
 	GrabList.push_back(pToGrab);
+}
+//--------------------------------------------------------------------------------------------------------------
+void S3DBaseViewer_c::GrabFrame()
+{
+	for(int i=0;i<GrabList.size();i++)
+	{
+		GrabList[i]->GrabFrame();
+	}
 }
 //--------------------------------------------------------------------------------------------------------------
 void S3DBaseViewer_c::GrabFrameIndex(int Index)
@@ -1015,7 +975,7 @@ void S3DMultiCamViewer_c::SetUpGrabber(stringmap &Config)//will call SetupGrabbe
 void S3DMultiCamViewer_c::Render(const char*WINNAME,bool DoClear)//Render the RenderList for every pS3D->Cam
 {
 	//we render in the pS3D->Cams.ImgRender
-	bool isRenderReference = true;
+	bool isRenderReference = false;
 	if(DoClear)
 	{
 		for(size_t i=0;i<pS3D->Cams.size();i++)

@@ -6,6 +6,7 @@
  *  No Copyright No rights reserved
  *
  */
+#pragma once
 #ifndef MULTICAMSTREAM_H_
 #define MULTICAMSTREAM_H_
 

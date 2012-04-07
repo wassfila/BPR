@@ -1,27 +1,125 @@
 
 #include "HPRApp.h"
 
-#include "cv.h"
-#include "highgui.h"
-#include "opencv2/highgui/highgui.hpp"
-
-#include "mcvGeneral.h"
-#include "S3DEnv.h"
-#include "mrgRegression.h"
-
-#include "DetectorBPR.h"
-//#include "MultiCamStream.h"
-
-//#include "BKGSub.h"
-//#include <ppl.h>
-
-#include "yaml-cpp/yaml.h"
-
 //---------------------------------------------------------------------------------------
 
 using namespace mcv;
 using namespace mrg;
+using namespace std;
 
+//---------------------------------------------------------------------------------------
+//				Viewing
+//---------------------------------------------------------------------------------------
+void MultiViewer_Chan_Grab(stringmap& Config)
+{
+	//nedded Flags : "CfgFile" "Channels"
+
+	S3DEnv_c MyEnv(Config["CfgFile"]);
+	S3DMultiCamViewer_c Viewer(&MyEnv);
+	Viewer.SetUpGrabber(Config);//"CfgFile" "Channels"
+
+	char Key = cv::waitKey(10);
+	while(Key!='q')
+	{
+		Viewer.GrabFrame();
+		Viewer.Render("Anim");
+		Key = cv::waitKey(30);
+	}
+	printf("\n");
+
+	cout << "Closing..." << endl;
+	//Viewer.Grabber.Views[0].NetStream.Close();
+
+}
+//---------------------------------------------------------------------------------------
+void MultiViewer_Chan_Index(stringmap& Config,int Start,int Last)
+{
+	S3DEnv_c MyEnv(Config["CfgFile"]);
+	S3DMultiCamViewer_c Viewer(&MyEnv);
+	Viewer.SetUpGrabber(Config);//"CfgFile" "Channels"
+
+	char Key = cv::waitKey(10);
+	int i=Start;
+	while(Key!='q')
+	{
+		Viewer.GrabFrameIndex(i);
+		Viewer.Render("Anim");
+		Key = cv::waitKey(30);
+		i++;
+		if(i>Last)i=Start;
+	}
+	printf("\n");
+
+	cout << "Closing..." << endl;
+}
+//---------------------------------------------------------------------------------------
+void MultiViewer_JointsVoxChan_Index(stringmap& Config,int Start,int Last)//3
+{
+	//nedded Flags : "CfgFile" "Node"
+	//optional Flags : "ViewerJoints" "ViewerVox" "ViewerChannels"
+	bool isAnim = false;
+	bool isVoxel = false;
+	stringmap LocalC;
+	BodyJoints_c JointsAnim;
+	if(!Config["ViewerJoints"].empty())
+	{
+		LocalC["CfgFile"]	= Config["CfgFile"];
+		LocalC["Node"]		= Config["Node"];
+		LocalC["Tag"]		= Config["ViewerJoints"];
+		JointsAnim.SetupGrabber(LocalC);
+		isAnim = true;
+	}
+
+	g3d::VoxelSpace_c Vox;
+	//re use of Config - same CfgFile and Node 
+	if(Config.find("ViewerVox")!=Config.end())
+	{
+		LocalC["CfgFile"]	= Config["CfgFile"];
+		LocalC["Node"]		= Config["Node"];
+		LocalC["Tag"] = Config["ViewerVox"];//"Voxels"
+		Vox.SetupGrabber(LocalC);
+		isVoxel = true;
+	}
+
+	S3DEnv_c MyEnv(Config["CfgFile"]);
+	S3DMultiCamViewer_c Viewer(&MyEnv);
+	if(Config.find("ViewerChannels")!=Config.end())
+	{
+		LocalC["CfgFile"]	= Config["CfgFile"];
+		LocalC["Channels"] = Config["ViewerChannels"];//"BKG"
+		Viewer.SetUpGrabber(LocalC);//"CfgFile" "Channels"
+	}
+	if(isAnim)
+	{
+		Viewer.AddToGrab(&JointsAnim);
+		Viewer.AddToRender(&JointsAnim);
+	}
+	if(isVoxel)
+	{
+		Viewer.AddToGrab(&Vox);
+		Viewer.AddToRender(&Vox);
+	}
+	char Key = cv::waitKey(10);
+	int i=Start;
+	bool isGrab = true;
+	while(Key!='q')
+	{
+		if(isGrab)
+		{
+			printf("%d,",i);
+			Viewer.GrabFrameIndex(i++);
+			isGrab = false;
+		}
+		Viewer.Render("Anim");
+		Key = cv::waitKey(10);
+		if(Key == 'g')
+		{
+			isGrab = true;
+		}
+		if(i==Last+1)i=Start;
+	}
+	printf("\n");
+}
 //---------------------------------------------------------------------------------------
 char Hold(int msHold)
 {
@@ -34,8 +132,10 @@ char Hold(int msHold)
 	return Key;
 }
 //---------------------------------------------------------------------------------------
-void AnimViewer(stringmap& Config,int Start,int Last,int msHold)//3
+void FlyViewer_JointsVoxChan_Index(stringmap& Config,int Start,int Last,int msHold)//3
 {
+	//nedded Flags : "CfgFile" "Node"
+	//optional Flags : "ViewerJoints" "ViewerJoints2" "ViewerVox"
 	bool isAnim = false;
 	bool isAnimres = false;
 	bool isVoxel = false;
@@ -43,35 +143,37 @@ void AnimViewer(stringmap& Config,int Start,int Last,int msHold)//3
 	stringmap LocalC;
 	int vmsHold = msHold;
 	BodyJoints_c JointsAnim,JointsAnimres;
-	if(!Config["AnimTag"].empty())
+	if(!Config["ViewerJoints"].empty())
 	{
 		LocalC["CfgFile"]	= Config["CfgFile"];
 		LocalC["Node"]		= Config["Node"];
-		LocalC["Tag"]		= Config["AnimTag"];
+		LocalC["Tag"]		= Config["ViewerJoints"];
 		JointsAnim.SetupGrabber(LocalC);
 		isAnim = true;
 	}
-	if(!Config["AnimTagres"].empty())
+	if(!Config["ViewerJoints2"].empty())
 	{
 		LocalC["CfgFile"]	= Config["CfgFile"];
 		LocalC["Node"]		= Config["Node"];
-		LocalC["Tag"]		= Config["AnimTagres"];
+		LocalC["Tag"]		= Config["ViewerJoints2"];
 		JointsAnimres.SetupGrabber(LocalC);
 		isAnimres = true;
 	}
 
 	g3d::VoxelSpace_c Vox;
-	if(!Config["GrabTag"].empty())
+	if(!Config["ViewerVox"].empty())
 	{
 		LocalC["CfgFile"]	= Config["CfgFile"];
 		LocalC["Node"]		= Config["Node"];
-		LocalC["Tag"] = Config["GrabTag"];//"Voxels"
+		LocalC["Tag"] = Config["ViewerVox"];//"Voxels"
 		Vox.SetupGrabber(LocalC);
 		isVoxel = true;
 	}
 
 	S3DEnv_c MyEnv(Config["CfgFile"]);
 	S3DFlyCamViewer_c Viewer(&MyEnv,"Anim");
+	//Viewer.EnableExport("G:\\Data\\vid\\Seq1_%04d.png");
+	//Viewer.isExportEnabled = false;
 
 	if(isAnim)
 	{
@@ -108,6 +210,11 @@ void AnimViewer(stringmap& Config,int Start,int Last,int msHold)//3
 		}
 		//Viewer.Cam.RotateY(0.02f);
 		//Key = Hold(msHold);
+		if(Key == 'e')
+		{
+			Viewer.isExportEnabled = !Viewer.isExportEnabled;
+			cout << "Export " << Viewer.isExportEnabled << endl;
+		}
 		if(Key == 'g')
 		{
 			isGrab = !isGrab;
@@ -121,144 +228,9 @@ void AnimViewer(stringmap& Config,int Start,int Last,int msHold)//3
 	printf("\n");
 }
 //---------------------------------------------------------------------------------------
-void AnimMultiViewer(stringmap& Config,int Start,int Last)//3
-{
-	//nedded Flags : "CfgFile" "Node"
-	//optional Flags : "AnimTag" "GrabTag" "ChanTag"
-	bool isAnim = false;
-	bool isVoxel = false;
-	stringmap LocalC;
-	BodyJoints_c JointsAnim;
-	if(!Config["AnimTag"].empty())
-	{
-		LocalC["CfgFile"]	= Config["CfgFile"];
-		LocalC["Node"]		= Config["Node"];
-		LocalC["Tag"]		= Config["AnimTag"];
-		JointsAnim.SetupGrabber(LocalC);
-		isAnim = true;
-	}
-
-	g3d::VoxelSpace_c Vox;
-	//re use of Config - same CfgFile and Node 
-	if(Config.find("GrabTag")!=Config.end())
-	{
-		LocalC["CfgFile"]	= Config["CfgFile"];
-		LocalC["Node"]		= Config["Node"];
-		LocalC["Tag"] = Config["GrabTag"];//"Voxels"
-		Vox.SetupGrabber(LocalC);
-		isVoxel = true;
-	}
-
-	S3DEnv_c MyEnv(Config["CfgFile"]);
-	S3DMultiCamViewer_c Viewer(&MyEnv);
-	if(Config.find("ChanTag")!=Config.end())
-	{
-		LocalC["CfgFile"]	= Config["CfgFile"];
-		LocalC["Channels"] = Config["ChanTag"];//"BKG"
-		Viewer.SetUpGrabber(LocalC);//"CfgFile" "Channels"
-	}
-	if(isAnim)
-	{
-		Viewer.AddToGrab(&JointsAnim);
-		Viewer.AddToRender(&JointsAnim);
-	}
-	if(isVoxel)
-	{
-		Viewer.AddToGrab(&Vox);
-		Viewer.AddToRender(&Vox);
-	}
-	char Key = cv::waitKey(10);
-	int i=Start;
-	bool isGrab = true;
-	while(Key!='q')
-	{
-		if(isGrab)
-		{
-			printf("%d,",i);
-			Viewer.GrabFrameIndex(i++);
-			isGrab = false;
-		}
-		Viewer.Render("Anim");
-		Key = cv::waitKey(10);
-		if(Key == 'g')
-		{
-			isGrab = true;
-		}
-		if(i==Last+1)i=Start;
-	}
-	printf("\n");
-}
+//				Processing Data
 //---------------------------------------------------------------------------------------
-void MultiVideos(S3DEnv_c S3DEnv,std::string ChanName)
-{
-	MultiCamStream Streams;
-	int NbStreams = S3DEnv.GetStreams(Streams,ChanName.c_str());
-	std::vector<cv::Mat> Images(NbStreams);
-	char Key = cv::waitKey(10);
-	int StreamIndex = Streams.ImgsStream[0].FirstImage;
-	int ModelIndex = 0;
-	if(NbStreams ==S3DEnv.Cams.size())
-	{
-		do
-		{
-			S3DEnv.WModel.SetAnimByIndex(ModelIndex++,S3DEnv.Motion_isPostion);
-			Streams.GetFramesByIndex(Images,StreamIndex++);
-			if(StreamIndex > Streams.ImgsStream[0].LastImage)
-			{
-				printf("Restarting, press Key to continue...");cv::waitKey();
-				StreamIndex = Streams.ImgsStream[0].FirstImage;
-				ModelIndex = 0;
-			}
-			//clearBuffers
-			S3DEnv.ClearBuffers();
-			//S3DEnv.FillBuffers(Grabber.GetFrames());//Will look for every configured Channel Type
-			S3DEnv.FillBuffers(Images);
-			S3DEnv.DrawReference(g3d::MatrixIdentity(),50,-1);
-			S3DEnv.Render("Porsture",false);
-			//S3DEnv.Render("Motion");
-			Key = cv::waitKey(10);
-			if(Key != -1)
-			{
-				printf("press Key to resume...\n");
-				if(Key!='q')Key = cv::waitKey();
-			}
-		}while(Key !='q');
-	}
-	else
-	{
-		printf("Env Nb Views (%d) different from Channel Nb Streams (%d) don't have labels to associate them\n",S3DEnv.Cams.size(),NbStreams);
-	}
-}
-//---------------------------------------------------------------------------------------
-void StreamPlay(S3DEnv_c &S3DEnv,std::string ChanName)
-{
-	MultiCamStream Streams;
-	int NbStreams = S3DEnv.GetStreams(Streams,ChanName.c_str());
-	if(NbStreams !=0)
-	{
-		printf("NbStreams = %d\n",NbStreams);
-		std::vector<cv::Mat> Images(NbStreams);
-		char Key = cv::waitKey(10);
-		do
-		{
-		
-			Streams.GetFrames(Images);
-			mcv::imNShow(Images,"Posture");
-			Key = cv::waitKey(10);
-			if(Key != -1)
-			{
-				printf("press Key to resume...\n");
-				if(Key!='q')cv::waitKey();
-			}
-		}while(Key !='q');
-	}
-	else
-	{
-		printf("Channel '%s' is not found on the Path (%s)\n",ChanName,S3DEnv.SMainPath.c_str());
-	}
-}
-//---------------------------------------------------------------------------------------
-void Voxellize(std::string &CfgFile,float VoxelSize,int Start,int Last,bool isProcess2DToVox,bool isProcessResp3D)
+void Voxellize(std::string &CfgFile,float VoxelSize,int Start,int Last)
 {
 	printf("=======================================================================================\n");
 	printf("GenerateVoxels(%d to %d) on (%s) \n",Start,Last,CfgFile.c_str());
@@ -266,12 +238,10 @@ void Voxellize(std::string &CfgFile,float VoxelSize,int Start,int Last,bool isPr
 	//----------------------------------------------------------Detectors BPR needs S3DEnv
 	S3DEnv_c S3DVirtS(CfgFile);
 	hpr::DetectorBPR_c	MyBPR(&S3DVirtS,CfgFile);
-	//MyBPR.Voxelliser.SetUpDescSign("Desc3DSign");//Automatically loaded
 	double t;
 	TStart(t);
 	//------------------------------------------Data Generation
-	if(isProcess2DToVox)MyBPR.Process2DToVox(Start,Last,VoxelSize,"BKG","Voxels");
-	if(isProcessResp3D)MyBPR.ProcessResp3D(Start,Last,"Voxels","Joints","Parts3DResp","VoxelsParts");
+	MyBPR.Process2DToVox(Start,Last,VoxelSize,"BKG","Voxels");
 	TStop(t,"Voxellize()==================================================");
 }
 //---------------------------------------------------------------------------------------
@@ -312,6 +282,8 @@ void GenerateTrainResp(std::string &CfgFile,int Start,int Last)
 	TStop(t,"GenerateTrainResp()==============================");
 }
 //---------------------------------------------------------------------------------------
+//				Machine Learning
+//---------------------------------------------------------------------------------------
 void LoadChannelsAndTrainModel(std::string &CfgFile,int Start,int Last,bool isFilterEveryOne,bool isFilterTotal)//5Tags
 {
 	printf("=======================================================================================\n");
@@ -346,6 +318,34 @@ void LoadChannelsAndTrainModel(std::string &CfgFile,int Start,int Last,bool isFi
 	MLModel.saveModel();//Default ANN - 3 files : .Train .Resp .ann
 
 	TStop(t,"LoadChannelsAndTrainModel()==============================");
+}
+//---------------------------------------------------------------------------------------
+void ExportChannels(std::string &CfgFile,int Start,int Last)
+{
+	printf("=======================================================================================\n");
+	printf("ExportChannel(%s)\n",CfgFile.c_str());
+	printf("=======================================================================================\n");
+	//----------------------------------------------------------Detectors BPR needs S3DEnv
+	printf("Exporting Poses (%d,%d):\n",Start,Last);
+	double t;
+	mrg::MLData_c MLData(CfgFile,"MLD1");//MLData1 CfgFile to be able to load Channels - "MLData1" to save load Train-Resp Tables
+	for(int i=Start;i<=Last;i++)
+	{
+		printf("Pose (%d)------------\n",i);
+		double t;
+		TStart(t);
+		MLData.Train.clear();
+		MLData.Resp.clear();
+		MLData.loadTrainChannel(i,i,"Poses","Desc3DTrain");
+		MLData.loadRespChannel(i,i,"Poses","Parts3DResp");//LabelResp	//Load Resp
+		TStop(t,"Loading()");
+		char FileName[512];
+		sprintf(FileName,"G:\\PosturesDB\\temp\\Train%04d.csv",i);
+		MLData.Train.Export(FileName);
+		sprintf(FileName,"G:\\PosturesDB\\temp\\Resp%04d.csv",i);
+		MLData.Resp.Export(FileName);
+	}
+
 }
 //---------------------------------------------------------------------------------------
 void LoadAndTrainModel(std::string &CfgFile)//no big interest
@@ -395,9 +395,11 @@ void PredictCompare(std::string &Config,int Start,int Last,bool isPredict,bool i
 	if(isCompare)MLModel.CompareClass(Start,Last,"Poses","Parts3DResp","Parts3DRespres",true);//with ,true optional can display per image info
 
 	if(isGetCenters)MyBPR.ProcessVoxParts2Centers(Start,Last,"VoxelsPartsres","Jointsres");
-	//if(isGetCenters)MyBPR.ProcessVoxParts2Centers(Start,Last,"VoxelsParts","RefJointsres");
+	if(isGetCenters)MyBPR.ProcessVoxParts2Centers(Start,Last,"VoxelsParts","RefJointsres");
+	printf("----------------------'Joints','Jointsres'------------------");
 	if(isCompareCenters)MyBPR.CompareCenters(Start,Last,"Joints","Jointsres");
-	//if(isCompareCenters)MyBPR.CompareCenters(Start,Last,"RefJointsres","Jointsres");
+	printf("----------------------'RefJointsres','Jointsres'------------------");
+	if(isCompareCenters)MyBPR.CompareCenters(Start,Last,"RefJointsres","Jointsres");
 	TStop(t,"PredictCompare()==========================================");
 }
 //---------------------------------------------------------------------------------------
@@ -559,6 +561,40 @@ void CompareAllClasses()
 	MLModel.CompareClass(37,38,"Views","LabelResp","LabelRespres");//Ref, Test 38 is bugous
 }
 //---------------------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------
+//---------------------------------------------------------------------------------------
+void StreamPlay(S3DEnv_c &S3DEnv,std::string ChanName)//rather use MultiViewer_Chan_Index
+{
+	MultiCamStream Streams;
+	int NbStreams = S3DEnv.GetStreams(Streams,ChanName.c_str());
+	if(NbStreams !=0)
+	{
+		printf("NbStreams = %d\n",NbStreams);
+		std::vector<cv::Mat> Images(NbStreams);
+		char Key = cv::waitKey(10);
+		do
+		{
+		
+			Streams.GetFrames(Images);
+			mcv::imNShow(Images,"Posture");
+			Key = cv::waitKey(10);
+			if(Key != -1)
+			{
+				printf("press Key to resume...\n");
+				if(Key!='q')cv::waitKey();
+			}
+		}while(Key !='q');
+	}
+	else
+	{
+		printf("Channel '%s' is not found on the Path (%s)\n",ChanName,S3DEnv.SMainPath.c_str());
+	}
+}
+//---------------------------------------------------------------------------------------
 void DisplayHelp(bool clear = true)
 {
 	if(clear)system("cls");
@@ -594,7 +630,7 @@ void EnvChannelsViewer()
 
 	//Params to select
 	S3DEnv_c *pS3D = &S3DVirt;
-	pS3D->Render("Posture");
+	//pS3D->Render("Posture");
 	std::string ChanName = "Any";
 
 	DisplayHelp(false);
@@ -628,3 +664,45 @@ void EnvChannelsViewer()
 	printf("Destruction Might take time...");
 }
 //---------------------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------------------
+void MultiVideos(S3DEnv_c S3DEnv,std::string ChanName)
+{
+	MultiCamStream Streams;
+	int NbStreams = S3DEnv.GetStreams(Streams,ChanName.c_str());
+	std::vector<cv::Mat> Images(NbStreams);
+	char Key = cv::waitKey(10);
+	int StreamIndex = Streams.ImgsStream[0].FirstImage;
+	int ModelIndex = 0;
+	if(NbStreams ==S3DEnv.Cams.size())
+	{
+		do
+		{
+			//S3DEnv.WModel.SetAnimByIndex(ModelIndex++,S3DEnv.Motion_isPostion);
+			Streams.GetFramesByIndex(Images,StreamIndex++);
+			if(StreamIndex > Streams.ImgsStream[0].LastImage)
+			{
+				printf("Restarting, press Key to continue...");cv::waitKey();
+				StreamIndex = Streams.ImgsStream[0].FirstImage;
+				ModelIndex = 0;
+			}
+			//clearBuffers
+			S3DEnv.ClearBuffers();
+			//S3DEnv.FillBuffers(Grabber.GetFrames());//Will look for every configured Channel Type
+			S3DEnv.FillBuffers(Images);
+			S3DEnv.DrawReference(g3d::MatrixIdentity(),50,-1);
+			//S3DEnv.Render("Porsture",false);
+			//S3DEnv.Render("Motion");
+			Key = cv::waitKey(10);
+			if(Key != -1)
+			{
+				printf("press Key to resume...\n");
+				if(Key!='q')Key = cv::waitKey();
+			}
+		}while(Key !='q');
+	}
+	else
+	{
+		printf("Env Nb Views (%d) different from Channel Nb Streams (%d) don't have labels to associate them\n",S3DEnv.Cams.size(),NbStreams);
+	}
+}

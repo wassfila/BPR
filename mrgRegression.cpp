@@ -779,10 +779,11 @@ void MLData_c::load(const char*TrainTag, const char*RespTag)
 	assert(Train.size() == Resp.size());
 }
 //---------------------------------------------------------------------------------------------------------------
-void MLData_c::Export(const char*TrainTag, const char*RespTag)
+void MLData_c::Export(int Index,const char*TrainTag, const char*RespTag)
 {
-	std::string TrainFileName = MainPath + (std::string)Fs[NodeName][TrainTag];
-	std::string RespFileName = MainPath + (std::string)Fs[NodeName][RespTag];
+	// DO NOT USE THIS
+	std::string TrainFileName = MainPath + (std::string)Fs[NodeName][TrainTag]+".csv";
+	std::string RespFileName = MainPath + (std::string)Fs[NodeName][RespTag]+".csv";
 
 	assert(Train.size() == Resp.size());
 
@@ -790,7 +791,7 @@ void MLData_c::Export(const char*TrainTag, const char*RespTag)
 	Resp.Export(RespFileName);
 }
 //---------------------------------------------------------------------------------------------------------------
-void MLData_c::Import(const char*TrainTag, const char*RespTag)
+void MLData_c::Import(int Index,const char*TrainTag, const char*RespTag)
 {
 	std::string TrainFileName = MainPath + (std::string)Fs[NodeName][TrainTag];
 	std::string RespFileName = MainPath + (std::string)Fs[NodeName][RespTag];

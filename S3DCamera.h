@@ -1,4 +1,5 @@
 
+#pragma once
 #ifndef __S3DCAMERA__
 #define __S3DCAMERA__
 
@@ -6,6 +7,7 @@
 #include "cv.h"
 #include "highgui.h"
 #include <Eigen\Dense>
+#include<Eigen/StdVector>
 
 #include "S3DGeom.h"
 #include "mcvGeneral.h"
@@ -60,6 +62,8 @@ public:
 
 	void Translate(float Tx,float Ty,float Tz);
 	void RotateY(float Ry);
+public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 class Soft3DCamera_c
@@ -137,6 +141,8 @@ public:
 	void Display(const char*WinName);
 
 	void Render(Soft3DCamera_c& RenderCam);
+public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 //--------------------------------------------------------------------------------------------------------------
 

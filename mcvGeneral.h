@@ -1,5 +1,8 @@
+
+#pragma once
 #ifndef __MCVGENERAL__
 #define __MCVGENERAL__
+//#pragma message("------------------------------------mcvGeneral.h------------------------------------")
 
 #include "cv.h"
 #include "highgui.h"
@@ -131,7 +134,13 @@ INLINE void PutBlockF(float*pPix,int Step,float Color)
 }
 //-------------------------------------------------------------------------------------------------------
 
+#ifndef CONFIGMAPS
+#define CONFIGMAPS
 typedef std::map<std::string,std::string> stringmap;
+typedef std::list<std::string> stringlist;
+typedef std::map<std::string,stringlist> stringlistmap;//a map of lists, lists contains strings
+#endif
+
 
 namespace mcv
 {
@@ -143,9 +152,6 @@ namespace mcv
 		virtual void GrabFrame(){}//		GrabFrameIndex(NextIndexToGrab++);
 		virtual void GrabFrameIndex(int Index){}//not mandatory - Will simply call the GrabFrame() if not overloaded
 	};
-
-
-
 
 	const int Cvt_BGR2HueGray = 1;
 	const int Cvt_Gray2HueBGR = 2;
@@ -161,6 +167,13 @@ namespace mcv
 	const cv::Scalar clBlack	= cv::Scalar(0,0,0);
 	const cv::Scalar clGray		= cv::Scalar(128,128,128);
 	const cv::Scalar clWhite	= cv::Scalar(255,255,255);
+
+	const ScalarC ClBlue	= ScalarC(255,0,0);
+	const ScalarC ClGreen	= ScalarC(0,255,0);
+	const ScalarC ClRed		= ScalarC(0,0,255);
+	const ScalarC ClBlack	= ScalarC(0,0,0);
+	const ScalarC ClGray	= ScalarC(128,128,128);
+	const ScalarC ClWhite	= ScalarC(255,255,255);
 
 	int CheckSum(int* pData,int DataSizex4B);
 
@@ -293,6 +306,7 @@ float readFloatLine(std::ifstream &File);
 
 std::string GetMainPath(std::string Str);
 std::string GetFileName(std::string Str);
+std::string TakeParseTo(std::string &Str,char Separator);
 
 
 

@@ -11,12 +11,15 @@
 	dimentionnal space coverage
 */
 
+#pragma once
 #ifndef __S3DGEOM__
 #define __S3DGEOM__
+//#pragma message("------------------------------------S3DGeom.h------------------------------------")
 
 #include "cv.h"
 #include "highgui.h"
 #include <Eigen\Dense>
+#include<Eigen/StdVector>
 
 //for the VPoints
 #include "mcvGeneral.h"
@@ -27,6 +30,9 @@ using Eigen::Vector4f;
 using Eigen::Vector3f;
 using Eigen::Vector2f;
 using Eigen::Quaternionf;
+
+EIGEN_DEFINE_STL_VECTOR_SPECIALIZATION(Vector4f)
+EIGEN_DEFINE_STL_VECTOR_SPECIALIZATION(Vector3f)
 
 typedef	cv::Mat S3DMatrix;
 
@@ -48,6 +54,8 @@ public:
 	EigenRay();
 	Vector3f GetPoint(float Distance);
 	void printf(const char*VName);
+public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 struct EigenPlane
@@ -55,6 +63,8 @@ struct EigenPlane
 	Vector3f	Point;
 	Vector3f	Vect1;
 	Vector3f	Vect2;
+public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 //--------------------------------------------------------------------------------------------------------------
@@ -67,12 +77,16 @@ public:
 	bool		isValid;
 	EigenBlob2DExtremas();
 	void Draw(cv::Mat &Img);
+public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 struct EigenBox2D
 {
 	Vector2f	High;
 	Vector2f	Low;
+public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 //--------------------------------------------------------------------------------------------------------------
@@ -97,6 +111,8 @@ public:
 	//Vector4f BlobToBox(const std::vector<cv::Mat> &ImgsBkg,bool CopyImages=true);
 
 	void printf(const char*BName);
+public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 
 namespace g3d
@@ -145,7 +161,7 @@ namespace g3d
 	Matrix3f MatrixAxis(Vector3f &XAxis,Vector3f &YAxis,Vector3f &ZAxis);
 	Matrix4f MatrixAxisTr(const Vector3f &XAxis,const Vector3f &YAxis,const Vector3f &ZAxis,const Vector3f &TrVect);
 
-	void S3DMatrixPrint(Matrix4f PrintThis);
+	void S3DMatrixPrint(const Matrix4f& PrintThis);
 
 	Matrix4f S3DMatrixView(Vector3f &Pos,Vector3f &LookAt);
 	Matrix4f S3DMatrixView(CvMat * rot_vect,CvMat * tr_vect);

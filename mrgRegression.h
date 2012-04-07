@@ -13,8 +13,10 @@
 */
 
 
+#pragma once
 #ifndef __MCVREGRESSION__
 #define __MCVREGRESSION__
+//#pragma message("------------------------------------mrgRegression.h------------------------------------")
 
 
 //#include <flann/flann.h>
@@ -205,8 +207,8 @@ public:
 	void save(const char*TrainTag = "Train", const char*RespTag = "Resp");//else use Train.save and Resp.save
 	void load(const char*TrainTag = "Train", const char*RespTag = "Resp");
 
-	void Import(const char*TrainTag = "Train", const char*RespTag = "Resp");//else use Train.save and Resp.save
-	void Export(const char*TrainTag = "Train", const char*RespTag = "Resp");
+	void Import(int Index,const char*TrainTag = "Train", const char*RespTag = "Resp");//else use Train.save and Resp.save
+	void Export(int Index,const char*TrainTag = "Train", const char*RespTag = "Resp");
 
 	void CopyAppend(MLData_c &Data);
 

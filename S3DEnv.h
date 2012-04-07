@@ -10,17 +10,28 @@
 	dimentionnal space coverage
 */
 
+#pragma once
 #ifndef __S3ENV__
 #define __S3ENV__
+//#pragma message("------------------------------------S3DEnv.h------------------------------------")
+
+#include "NetStream.h"
 
 #include "cv.h"
 #include "highgui.h"
 #include <Eigen\Dense>
+#include<Eigen/StdVector>
 
 
-#include "S3DModel.h"
-#include "S3DGeom.h"
 #include "MultiCamStream.h"
+#include "mcvGeneral.h"
+#include "S3DGeom.h"
+#include "S3DCamera.h"
+#include "S3DModel.h"
+
+#include <iostream>
+#include <fstream>
+
 
 using Eigen::Matrix4f;
 using Eigen::Vector4f;
@@ -45,12 +56,12 @@ public:
 	cv::FileStorage					Fs;//what's the best representation of a file than the file itself No more "Views"
 	std::string SMainPath;
 
-	std::vector<Soft3DCamera_c>		Cams;
+	std::vector<Soft3DCamera_c,Eigen::aligned_allocator<Soft3DCamera_c>>		Cams;
 
 	int							LastStreamsIndex;
 	int							FirstStreamsIndex;
 	bool						Motion_isPostion;// Deprecated
-	WireModel_c			WModel;
+	//WireModel_c			WModel;
 
 	BodyMoCap_c MoCap;//To re-Work
 
@@ -75,8 +86,8 @@ public:
 
 	//------------------------------------------------------------------------------------------------All redundent Functions
 	void DrawModel(const char*WinName=NULL,float Light=0.5);//Cam.DrawModel
-	void Render(const char*WinName=NULL, bool IsClearBuffers = true);//Draw on Unicolor Background
-	void Render(bool IsClearBuffers);
+	//void Render(const char*WinName=NULL, bool IsClearBuffers = true);//Draw on Unicolor Background
+	//void Render(bool IsClearBuffers);
 	void Draw(std::vector<cv::Mat> &ImgsDrawOn,const char*WinName=NULL,float Light=0.5);
 
 
@@ -113,14 +124,25 @@ public:
 class View_c//Abstract Class of the Views - The inherited Classes should Grab From anywhere - Files, Cams, Network
 {
 public:
-	std::string ChanType;//"BPR" "BKG" "Depth" ... Can handle a single channel as the S3DGrabber_c is the controller of Channels affectation
-	std::string Source;//could be a counter indexed FileName (.png) or a Camera source config File (FireWire,Network)
-	IMGFileStream Stream;
+	std::string		ChanType;//"BPR" "BKG" "Depth" ... Can handle a single channel as the S3DGrabber_c is the controller of Channels affectation
+	std::string		Source;//"FileStream","net","rosnet"   could be a counter indexed FileName (.png) or a Camera source config File (FireWire,Network)
+
+	//----------------------------
+	IMGFileStream	Stream;
+	sck::Client		NetStream;//can push or pull, from or into the Buffer, once initialized
+	//ros::Client	RosNetStream;
+
 	Soft3DCamera_c Cam;//No render here - should be Simple Cam (S3DCam_c)
 	cv::Mat Buffer;//This is the Grabbing only buffer no render here
 public:
+
+	bool Grab();
+	cv::Mat GetFrame();
+
 	bool Grab(int Index);
 	cv::Mat GetFrameByIndex(int Index);
+public:
+	EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 };
 //--------------------------------------------------------------------------------------------------------------
 //The Main advantage of a Grabber over a direct MultiCamStream is that :
@@ -132,7 +154,7 @@ public:
 	//S3DEnv_c *pS3D;//For the Camera's List ?
 
 	//std::string CfgFileName;//The Cfg File contains N Channels in "Views"
-	std::vector<View_c> Views;//Every Image will contain the corresponding View[id] - Same size as the Config File
+	std::vector<View_c,Eigen::aligned_allocator<View_c>> Views;//Every Image will contain the corresponding View[id] - Same size as the Config File
 	std::vector<cv::Mat>Buffers;//Points the Buffer of every View !!!
 public:
 	//SetChannel() : Set the Found channels on the corresponding Views
@@ -145,7 +167,7 @@ public:
 	//--------------------------------------------------------------------------------mcv::Grabbable_c
 	void SetupGrabber(stringmap &Config);//Parses "CfgFile" and Adds "Channels" "BKG,BPR...."
 	void GrabFrameIndex(int Index);
-	//void GrabFrame();//for the cams
+	void GrabFrame();
 	//--------------------------------------------------------------------------------Renderable_c
 	void Render(Soft3DCamera_c &Cam);//Takes the Cam Id and fill it with the corresponding Channel
 };
@@ -176,6 +198,7 @@ public:
 	//virtual void SetUpViewer(stringmap &Config) = 0;
 	void EnableExport(const std::string &FileName);
 
+	void GrabFrame();
 	void GrabFrameIndex(int Index);
 	virtual void Render(const char*WINNAME = NULL,bool DoClear = true) = 0;
 	virtual void Display(const char*WINNAME) = 0;
@@ -208,7 +231,7 @@ public:
 //--------------------------------------------------------------------------------------------------------------
 class S3DMultiCamViewer_c:public S3DBaseViewer_c
 {
-private:
+public:
 	S3DGrabber_c	Grabber;//The Grabber is the First Element in the RenderList !!!
 public:
 	S3DMultiCamViewer_c(S3DEnv_c *pvS3D);

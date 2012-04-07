@@ -2,9 +2,6 @@
 #include "S3DVox.h"
 
 
-#include <iostream>
-#include <fstream>
-#include "mcvGeneral.h"
 
 using namespace g3d;
 using namespace mcv;

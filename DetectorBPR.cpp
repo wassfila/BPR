@@ -1,8 +1,5 @@
 
 #include "DetectorBPR.h"
-#include "mcvGeneral.h"
-
-#include "MultiCamStream.h"
 
 #include <iostream>
 #include <fstream>
@@ -18,9 +15,6 @@ using namespace mcv;
 #define PI_div_2 1.5707963267948966192313216916398f
 #define PI_div_12 0.26179938779914943653855361527329f
 #define PIx2 6.283185307179586476925286766559f
-
-
-#include <ppl.h>
 
 //---------------------------------------------------------------------------------------------------------------
 INLINE float GetWeight_Body(float InitialWeight,float WeightedPart)
@@ -1302,7 +1296,7 @@ int VoxDetector_c::ProcessVoxPartsPropagation(BodyJointsPose_c& Pose,VoxelSpace_
 //--------------------------------------------------------------------------------------------------------------
 void VoxDetector_c::ProcessVoxParts2Centers(VoxelSpace_c& Vox,std::vector<Vector3f>& BodyParts)//Starts from 2
 {
-#define DEBUG_ProcessVoxParts2Centers
+//#define DEBUG_ProcessVoxParts2Centers
 	float MaxRatio = 0.8f;
 	//float minRatio = 0.01f;//no min Ratio but minNb
 	int minNbVoxes = 15;//less than that it could simply have been a mislabeling
@@ -1395,6 +1389,12 @@ void VoxDetector_c::ProcessVoxParts2Centers(VoxelSpace_c& Vox,std::vector<Vector
 			int ei = Center_i+BoxSide/2;	if(ei>Vox.Xv)ei=Vox.Xv;
 			int ej = Center_j+BoxSide/2;	if(ej>Vox.Yv)ej=Vox.Yv;
 			int ek = Center_k+BoxSide/2;	if(ek>Vox.Zv)ek=Vox.Zv;
+			#ifdef DEBUG_ProcessVoxParts2Centers
+			EigenBox3D DispBox;
+			DispBox.Low = Vector3f(Center_i-BoxSide,Center_j-BoxSide,Center_k-BoxSide);
+			DispBox.High = Vector3f(Center_i+BoxSide,Center_j+BoxSide,Center_k+BoxSide);
+			DispBox.HasPointAdded = true;
+			#endif
 			//process : * NbPartId[i]
 			//--------------------------------------------------------------------------------------
 			NbPartId[Pid] = 0;//clear to Sum again
@@ -1675,6 +1675,12 @@ void DetectorBPR_c::ProcessTrain3D(int Start,int Last,const char*MStreamsVox_In,
 		YAML::Emitter Yout;
 		Yout << YAML::BeginDoc << Voxelliser.VoxSign << YAML::EndDoc;//Add the Vox Fit details
 		Train3D.save(Train3DFile,Yout.c_str(),true);
+//#define EXPORT_CSV
+#ifdef EXPORT_CSV
+		char RespCSVFileName[100];
+		sprintf(RespCSVFileName,"G:\\PosturesDB\\temp\\Train%04d.csv",PoseIndex);
+		Train3D.Export(RespCSVFileName);
+#endif
 		//------------------------------------------------------------------------
 		printf("Train3D(%d) NbData: %d - ",PoseIndex,NbVox);
 		NbVoxAllPoses += NbVox;
@@ -1849,6 +1855,12 @@ void DetectorBPR_c::ProcessResp3D(int Start,int Last,const char*StreamVox_In,con
 
 		TableResp3D.TypeName = "Parts3DResp";
 		TableResp3D.save(Resp3DStream.GetName(PoseIndex));
+//#define EXPORT_CSV
+#ifdef EXPORT_CSV
+		char RespCSVFileName[30];
+		sprintf(RespCSVFileName,"G:\\PosturesDB\\temp\\Resp%04d.csv",PoseIndex);
+		TableResp3D.Export(RespCSVFileName);
+#endif
 		//------------------------------------------------------------------------
 		if(ExportVoxParts!=NULL)
 		{

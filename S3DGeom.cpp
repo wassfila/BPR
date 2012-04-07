@@ -618,7 +618,7 @@ void g3d::GetReverseTransform(Matrix4f &MatDest,const Matrix4f &MatSrc)
 	MatDest(2,3)  = NewT.z();
 }
 //-------------------------------------------------------------------------------------------------------
-void g3d::S3DMatrixPrint(Matrix4f PrintThis)
+void g3d::S3DMatrixPrint(const Matrix4f& PrintThis)
 {
 	printf("S3DMatrix:\n");
 	std::cout << PrintThis << std::endl << std::endl;

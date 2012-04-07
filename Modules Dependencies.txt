@@ -1,0 +1,47 @@
+
+
+NetStream --
+
+MultiCamStream -- (cv)
+
+mcvGeneral -- (cv) (yaml)
+
+mrgRegression ->	mcvGeneral
+
+S3DGeom -> mcvGeneral (eigen)
+
+S3DCamera ->	S3DGeom
+				mcvGeneral
+
+S3DModel ->	mcvGeneral
+			S3DCamera
+			mrgRegression
+
+S3DEnv -> 	NetStream
+			MultiCamStream
+			mcvGeneral
+			S3DGeom
+			S3DCamera
+			S3DModel
+			
+
+			
+S3DVox ->	S3DEnv				(1st for NetStream)
+			MultiCamStream
+			mcvGeneral
+			mrgRegression
+			S3DGeom
+			S3DCamera
+			
+			
+
+DetectorBPR ->	S3DEnv
+				mcvGeneral
+				MultiCamStream
+				mrgRegression
+				S3DGeom
+				S3DModel
+				S3DVox
+
+				
+				
